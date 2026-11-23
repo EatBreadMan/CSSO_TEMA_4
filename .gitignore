@@ -1,0 +1,12 @@
+.vs/
+x64/
+Debug/
+Release/
+out/
+build/
+*.exe
+*.pdb
+*.obj
+*.ovpn
+*.safetensors
+T4
