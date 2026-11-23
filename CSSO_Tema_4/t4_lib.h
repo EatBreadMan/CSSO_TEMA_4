@@ -14,6 +14,8 @@ BOOL t4_mkdirs(const wchar_t* dir);
 int  t4_collatz_range(uint64_t a, uint64_t b, uint64_t* n_max, uint64_t* max_steps);
 
 /* log: mutexul 'log' este al apelantului (nu il inchide log_close). FALSE = eroare/abandoned => exit 3 */
+typedef void (*T4_LOG_HOOK)(const char* line, void* ctx);
+void t4_set_log_hook(T4_LOG_HOOK hook, void* ctx);
 BOOL log_open(const wchar_t* path, HANDLE hLogMutex, BOOL truncate);
 void log_close(void);
 BOOL log_line(const char* source, const char* event, const char* fmt, ...);

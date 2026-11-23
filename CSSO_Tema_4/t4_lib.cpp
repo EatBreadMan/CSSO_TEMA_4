@@ -21,8 +21,22 @@ BOOL t4_join(wchar_t* out, size_t n, const wchar_t* dir, const wchar_t* file)
 
 BOOL t4_mkdirs(const wchar_t* dir)
 {
-	int r = SHCreateDirectoryExW(NULL, dir, NULL);
-	return r == ERROR_SUCCESS || r == ERROR_ALREADY_EXISTS || r == ERROR_FILE_EXISTS;
+	if (!dir || !*dir) return FALSE;
+	wchar_t tmp[MAX_PATH];
+	wcsncpy(tmp, dir, MAX_PATH - 1);
+	tmp[MAX_PATH - 1] = 0;
+	size_t len = wcslen(tmp);
+	for (size_t i = 1; i < len; i++) {
+		if (tmp[i] == L'\\' || tmp[i] == L'/') {
+			wchar_t c = tmp[i];
+			tmp[i] = 0;
+			CreateDirectoryW(tmp, NULL);
+			tmp[i] = c;
+		}
+	}
+	if (CreateDirectoryW(tmp, NULL)) return TRUE;
+	DWORD err = GetLastError();
+	return err == ERROR_ALREADY_EXISTS || err == ERROR_SUCCESS;
 }
 
 /* ---------- Collatz ----------
@@ -56,6 +70,14 @@ int t4_collatz_range(uint64_t a, uint64_t b, uint64_t* n_max, uint64_t* max_step
 
 /* ---------- log ---------- */
 static HANDLE g_lf = INVALID_HANDLE_VALUE, g_lm = NULL;
+static T4_LOG_HOOK g_log_hook = NULL;
+static void* g_log_hook_ctx = NULL;
+
+void t4_set_log_hook(T4_LOG_HOOK hook, void* ctx)
+{
+	g_log_hook = hook;
+	g_log_hook_ctx = ctx;
+}
 
 BOOL log_open(const wchar_t* path, HANDLE hLogMutex, BOOL truncate)
 {
@@ -95,6 +117,9 @@ BOOL log_line(const char* source, const char* event, const char* fmt, ...)
 	DWORD wr = 0;
 	BOOL ok = WriteFile(g_lf, line, (DWORD)n, &wr, NULL);   /* un singur WriteFile pe linie */
 	ReleaseMutex(g_lm);
+	if (g_log_hook) {
+		g_log_hook(line, g_log_hook_ctx);
+	}
 	return ok && wr == (DWORD)n;
 }
 
